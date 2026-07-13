@@ -4,6 +4,7 @@ namespace CodexQuotaWidget
 {
     internal sealed class RateWindow
     {
+        public bool IsAvailable { get; set; }
         public int UsedPercent { get; set; }
         public long ResetAfterSeconds { get; set; }
         public long ResetAtUnix { get; set; }
@@ -15,7 +16,7 @@ namespace CodexQuotaWidget
 
         public bool IsLow
         {
-            get { return RemainingPercent <= 20; }
+            get { return IsAvailable && RemainingPercent <= 20; }
         }
     }
 

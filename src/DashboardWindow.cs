@@ -181,10 +181,11 @@ namespace CodexQuotaWidget
 
             public void Update(RateWindow window, bool online)
             {
-                remaining = online ? window.RemainingPercent : 0;
-                percentText.Text = online ? "剩余 " + remaining + "%" : "--";
-                resetText.Text = online ? UsageText.ResetLong(window.ResetAfterSeconds) : "等待数据";
-                fill.Background = online ? Theme.AccentFor(remaining) : new SolidColorBrush(Color.FromRgb(100, 103, 112));
+                bool available = online && window.IsAvailable;
+                remaining = available ? window.RemainingPercent : 0;
+                percentText.Text = available ? "剩余 " + remaining + "%" : "--";
+                resetText.Text = available ? UsageText.ResetLong(window.ResetAfterSeconds) : (online ? "暂未提供" : "等待数据");
+                fill.Background = available ? Theme.AccentFor(remaining) : new SolidColorBrush(Color.FromRgb(100, 103, 112));
                 ApplyFillWidth();
             }
 

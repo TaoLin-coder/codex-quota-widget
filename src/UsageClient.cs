@@ -71,28 +71,55 @@ namespace CodexQuotaWidget
             Dictionary<string, object> rateLimit = GetObject(root, "rate_limit");
             Dictionary<string, object> primary = GetObject(rateLimit, "primary_window");
             Dictionary<string, object> secondary = GetObject(rateLimit, "secondary_window");
-            if (primary == null || secondary == null)
+            if (rateLimit == null || (primary == null && secondary == null))
                 return UsageSnapshot.Error("用量数据格式已变化");
 
             Dictionary<string, object> credits = GetObject(root, "credits");
             Dictionary<string, object> resetCredits = GetObject(root, "rate_limit_reset_credits");
+            RateWindow fiveHour = new RateWindow();
+            RateWindow weekly = new RateWindow();
+            ClassifyWindow(primary, ref fiveHour, ref weekly);
+            ClassifyWindow(secondary, ref fiveHour, ref weekly);
+            if (!fiveHour.IsAvailable && !weekly.IsAvailable)
+                return UsageSnapshot.Error("用量窗口类型暂不支持");
+
+            string status = "已连接";
+            if (!fiveHour.IsAvailable && weekly.IsAvailable)
+                status = "已连接 · 当前仅有一周限额";
+            else if (fiveHour.IsAvailable && !weekly.IsAvailable)
+                status = "已连接 · 当前仅有短期限额";
+
             return new UsageSnapshot
             {
                 IsOnline = true,
-                StatusMessage = "已连接",
+                StatusMessage = status,
                 PlanType = GetString(root, "plan_type"),
                 CreditsBalance = GetString(credits, "balance"),
                 AvailableResetCredits = GetInt(resetCredits, "available_count"),
                 UpdatedAt = DateTime.Now,
-                FiveHour = ParseWindow(primary),
-                Weekly = ParseWindow(secondary)
+                FiveHour = fiveHour,
+                Weekly = weekly
             };
+        }
+
+        private static void ClassifyWindow(Dictionary<string, object> value, ref RateWindow fiveHour, ref RateWindow weekly)
+        {
+            if (value == null) return;
+            long seconds = GetLong(value, "limit_window_seconds");
+            RateWindow parsed = ParseWindow(value);
+
+            // The backend may place either window in primary_window. Classify by duration.
+            if (seconds >= 6 * 24 * 60 * 60)
+                weekly = parsed;
+            else if (seconds > 0 && seconds <= 24 * 60 * 60)
+                fiveHour = parsed;
         }
 
         private static RateWindow ParseWindow(Dictionary<string, object> value)
         {
             return new RateWindow
             {
+                IsAvailable = true,
                 UsedPercent = GetInt(value, "used_percent"),
                 ResetAfterSeconds = GetLong(value, "reset_after_seconds"),
                 ResetAtUnix = GetLong(value, "reset_at")

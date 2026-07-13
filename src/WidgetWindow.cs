@@ -162,12 +162,12 @@ namespace CodexQuotaWidget
             snapshot = value;
             if (value.IsOnline)
             {
-                fivePercent.Text = value.FiveHour.RemainingPercent + "%";
+                fivePercent.Text = value.FiveHour.IsAvailable ? value.FiveHour.RemainingPercent + "%" : "--";
                 fiveAlert.Visibility = value.FiveHour.IsLow ? Visibility.Visible : Visibility.Collapsed;
-                weekPercent.Text = value.Weekly.RemainingPercent + "%";
+                weekPercent.Text = value.Weekly.IsAvailable ? value.Weekly.RemainingPercent + "%" : "--";
                 weekAlert.Visibility = value.Weekly.IsLow ? Visibility.Visible : Visibility.Collapsed;
-                ToolTip = "5 小时：" + UsageText.ResetLong(value.FiveHour.ResetAfterSeconds)
-                    + "\n一周：" + UsageText.ResetLong(value.Weekly.ResetAfterSeconds)
+                ToolTip = "5 小时：" + (value.FiveHour.IsAvailable ? UsageText.ResetLong(value.FiveHour.ResetAfterSeconds) : "暂未提供")
+                    + "\n一周：" + (value.Weekly.IsAvailable ? UsageText.ResetLong(value.Weekly.ResetAfterSeconds) : "暂未提供")
                     + "\n点击查看详情 · 更新于 " + value.UpdatedAt.ToString("HH:mm:ss");
             }
             else
