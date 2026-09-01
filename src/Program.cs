@@ -19,6 +19,9 @@ namespace CodexQuotaWidget
         [STAThread]
         private static void Main()
         {
+            // Let WPF update device-independent units when a window moves to a monitor with another DPI.
+            AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
+
             bool created;
             singleInstance = new Mutex(true, @"Local\CodexQuotaWidget", out created);
             if (!created) return;

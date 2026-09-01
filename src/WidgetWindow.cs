@@ -14,10 +14,10 @@ namespace CodexQuotaWidget
 {
     internal sealed class WidgetWindow : Window
     {
-        private readonly TextBlock fivePercent;
-        private readonly Ellipse fiveAlert;
-        private readonly TextBlock weekPercent;
-        private readonly Ellipse weekAlert;
+        private readonly TextBlock gptWeekPercent;
+        private readonly Ellipse gptWeekAlert;
+        private readonly TextBlock sparkWeekPercent;
+        private readonly Ellipse sparkAlert;
         private readonly DispatcherTimer positionTimer;
         private uint taskbarCreatedMessage;
         private IntPtr hwnd;
@@ -55,12 +55,11 @@ namespace CodexQuotaWidget
             Grid rows = new Grid();
             rows.RowDefinitions.Add(new RowDefinition());
             rows.RowDefinitions.Add(new RowDefinition());
-
-            Grid first = CreateRow("5 小时", foreground, out fiveAlert, out fivePercent);
-            Grid second = CreateRow("一周", foreground, out weekAlert, out weekPercent);
-            Grid.SetRow(second, 1);
-            rows.Children.Add(first);
-            rows.Children.Add(second);
+            Grid gptRow = CreateRow("GPT", foreground, out gptWeekAlert, out gptWeekPercent);
+            Grid sparkRow = CreateRow("Spark", foreground, out sparkAlert, out sparkWeekPercent);
+            Grid.SetRow(sparkRow, 1);
+            rows.Children.Add(gptRow);
+            rows.Children.Add(sparkRow);
             hitArea.Child = rows;
             Content = hitArea;
 
@@ -78,7 +77,7 @@ namespace CodexQuotaWidget
         private static Grid CreateRow(string label, Brush foreground, out Ellipse alert, out TextBlock percent)
         {
             Grid row = new Grid();
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(47) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
             row.ColumnDefinitions.Add(new ColumnDefinition());
 
@@ -132,12 +131,26 @@ namespace CodexQuotaWidget
         private IntPtr WndProc(IntPtr h, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             if ((uint)msg == taskbarCreatedMessage)
-                Dispatcher.BeginInvoke(new Action(delegate
-                {
-                    EmbedIntoTaskbar();
-                    PositionBesideTaskbar();
-                }));
+                QueueDisplayRefresh(true);
+            else if (msg == NativeMethods.WM_DISPLAYCHANGE)
+                QueueDisplayRefresh(true);
+            else if (msg == NativeMethods.WM_DPICHANGED
+                || msg == NativeMethods.WM_DPICHANGED_AFTERPARENT
+                || msg == NativeMethods.WM_SETTINGCHANGE)
+                QueueDisplayRefresh(false);
             return IntPtr.Zero;
+        }
+
+        private void QueueDisplayRefresh(bool reattachTaskbar)
+        {
+            Dispatcher.BeginInvoke(new Action(delegate
+            {
+                if (reattachTaskbar)
+                    taskbarHwnd = IntPtr.Zero;
+                PositionBesideTaskbar();
+                if (dashboard != null && dashboard.IsVisible)
+                    PositionDashboard(dashboard);
+            }), DispatcherPriority.Loaded);
         }
 
         private bool EmbedIntoTaskbar()
@@ -162,24 +175,40 @@ namespace CodexQuotaWidget
             snapshot = value;
             if (value.IsOnline)
             {
-                fivePercent.Text = value.FiveHour.IsAvailable ? value.FiveHour.RemainingPercent + "%" : "--";
-                fiveAlert.Visibility = value.FiveHour.IsLow ? Visibility.Visible : Visibility.Collapsed;
-                weekPercent.Text = value.Weekly.IsAvailable ? value.Weekly.RemainingPercent + "%" : "--";
-                weekAlert.Visibility = value.Weekly.IsLow ? Visibility.Visible : Visibility.Collapsed;
-                ToolTip = "5 小时：" + (value.FiveHour.IsAvailable ? UsageText.ResetLong(value.FiveHour.ResetAfterSeconds) : "暂未提供")
-                    + "\n一周：" + (value.Weekly.IsAvailable ? UsageText.ResetLong(value.Weekly.ResetAfterSeconds) : "暂未提供")
+                gptWeekPercent.Text = value.Weekly.IsAvailable ? value.Weekly.RemainingPercent + "%" : "--";
+                gptWeekAlert.Fill = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+                gptWeekAlert.Visibility = value.Weekly.IsLow ? Visibility.Visible : Visibility.Collapsed;
+
+                sparkWeekPercent.Text = value.SparkWeekly.IsAvailable ? value.SparkWeekly.RemainingPercent + "%" : "--";
+                bool sparkFiveHourLow = value.SparkFiveHour.IsAvailable && value.SparkFiveHour.RemainingPercent < 10;
+                sparkAlert.Fill = sparkFiveHourLow
+                    ? new SolidColorBrush(Color.FromRgb(250, 204, 21))
+                    : new SolidColorBrush(Color.FromRgb(239, 68, 68));
+                sparkAlert.Visibility = (sparkFiveHourLow || value.SparkWeekly.IsLow) ? Visibility.Visible : Visibility.Collapsed;
+
+                ToolTip = "GPT 一周：" + FormatQuota(value.Weekly)
+                    + "\nSpark 一周：" + FormatQuota(value.SparkWeekly)
+                    + "\nSpark 5 小时：" + FormatQuota(value.SparkFiveHour)
+                    + (sparkFiveHourLow ? " · 可能缓慢或暂不可用" : "")
                     + "\n点击查看详情 · 更新于 " + value.UpdatedAt.ToString("HH:mm:ss");
             }
             else
             {
-                fivePercent.Text = "--";
-                weekPercent.Text = "--";
-                fiveAlert.Visibility = Visibility.Collapsed;
-                weekAlert.Visibility = Visibility.Collapsed;
+                gptWeekPercent.Text = "--";
+                sparkWeekPercent.Text = "--";
+                gptWeekAlert.Visibility = Visibility.Collapsed;
+                sparkAlert.Visibility = Visibility.Collapsed;
                 ToolTip = value.StatusMessage;
             }
             if (dashboard != null && dashboard.IsVisible)
                 dashboard.UpdateSnapshot(value);
+        }
+
+        private static string FormatQuota(RateWindow window)
+        {
+            return window.IsAvailable
+                ? "剩余 " + window.RemainingPercent + "% · " + UsageText.ResetLong(window.ResetAfterSeconds)
+                : "暂未提供";
         }
 
         private void PositionBesideTaskbar()
@@ -195,7 +224,7 @@ namespace CodexQuotaWidget
 
             taskbarRect = data.rc;
             uint dpi = 96;
-            try { dpi = NativeMethods.GetDpiForWindow(hwnd); } catch { }
+            try { dpi = NativeMethods.GetDpiForWindow(taskbarHwnd); } catch { }
             if (dpi == 0) dpi = 96;
             dpiScale = dpi / 96.0;
 
@@ -207,7 +236,7 @@ namespace CodexQuotaWidget
             if (horizontal)
             {
                 Height = barHeight;
-                Width = Math.Min(190, Math.Max(130, barWidth * 0.16));
+                Width = Math.Min(144, Math.Max(116, barWidth * 0.11));
             }
             else
             {

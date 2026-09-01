@@ -37,7 +37,7 @@ namespace CodexQuotaWidget
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(UsageUrl);
                 request.Method = "GET";
                 request.Accept = "application/json";
-                request.UserAgent = "CodexQuotaWidget/0.1";
+                request.UserAgent = "CodexQuotaWidget/0.3";
                 request.Timeout = 15000;
                 request.ReadWriteTimeout = 15000;
                 request.Headers[HttpRequestHeader.Authorization] = "Bearer " + accessToken;
@@ -89,6 +89,16 @@ namespace CodexQuotaWidget
             else if (fiveHour.IsAvailable && !weekly.IsAvailable)
                 status = "已连接 · 当前仅有短期限额";
 
+            RateWindow sparkFiveHour = new RateWindow();
+            RateWindow sparkWeekly = new RateWindow();
+            Dictionary<string, object> additional = FindAdditionalRateLimit(root, "GPT-5.3-Codex-Spark");
+            if (additional != null)
+            {
+                Dictionary<string, object> sparkRateLimit = GetObject(additional, "rate_limit");
+                ClassifyWindow(GetObject(sparkRateLimit, "primary_window"), ref sparkFiveHour, ref sparkWeekly);
+                ClassifyWindow(GetObject(sparkRateLimit, "secondary_window"), ref sparkFiveHour, ref sparkWeekly);
+            }
+
             return new UsageSnapshot
             {
                 IsOnline = true,
@@ -98,8 +108,24 @@ namespace CodexQuotaWidget
                 AvailableResetCredits = GetInt(resetCredits, "available_count"),
                 UpdatedAt = DateTime.Now,
                 FiveHour = fiveHour,
-                Weekly = weekly
+                Weekly = weekly,
+                SparkFiveHour = sparkFiveHour,
+                SparkWeekly = sparkWeekly
             };
+        }
+
+        private static Dictionary<string, object> FindAdditionalRateLimit(Dictionary<string, object> root, string limitName)
+        {
+            if (root == null || !root.ContainsKey("additional_rate_limits")) return null;
+            object[] limits = root["additional_rate_limits"] as object[];
+            if (limits == null) return null;
+            foreach (object item in limits)
+            {
+                Dictionary<string, object> limit = item as Dictionary<string, object>;
+                if (String.Equals(GetString(limit, "limit_name"), limitName, StringComparison.OrdinalIgnoreCase))
+                    return limit;
+            }
+            return null;
         }
 
         private static void ClassifyWindow(Dictionary<string, object> value, ref RateWindow fiveHour, ref RateWindow weekly)

@@ -2,6 +2,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $source = Join-Path $root 'src'
 $output = Join-Path $root 'dist'
+$manifest = Join-Path $root 'app.manifest'
 $compiler = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $wpf = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF'
 
@@ -24,6 +25,7 @@ $arguments = @(
     '/target:winexe',
     '/platform:x64',
     '/optimize+',
+    ('/win32manifest:' + $manifest),
     '/main:CodexQuotaWidget.Program',
     ('/out:' + (Join-Path $output 'CodexQuotaWidget.exe'))
 )

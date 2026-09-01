@@ -30,6 +30,8 @@ namespace CodexQuotaWidget
         public DateTime UpdatedAt { get; set; }
         public RateWindow FiveHour { get; set; }
         public RateWindow Weekly { get; set; }
+        public RateWindow SparkFiveHour { get; set; }
+        public RateWindow SparkWeekly { get; set; }
 
         public static UsageSnapshot Loading()
         {
@@ -40,7 +42,9 @@ namespace CodexQuotaWidget
                 PlanType = "",
                 CreditsBalance = "0",
                 FiveHour = new RateWindow(),
-                Weekly = new RateWindow()
+                Weekly = new RateWindow(),
+                SparkFiveHour = new RateWindow(),
+                SparkWeekly = new RateWindow()
             };
         }
 

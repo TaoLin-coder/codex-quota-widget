@@ -14,8 +14,9 @@ namespace CodexQuotaWidget
         private readonly TextBlock statusText;
         private readonly TextBlock updatedText;
         private readonly TextBlock creditsText;
-        private readonly QuotaCard fiveHourCard;
         private readonly QuotaCard weeklyCard;
+        private readonly QuotaCard sparkWeeklyCard;
+        private readonly TextBlock sparkFiveHourText;
 
         public event EventHandler RefreshRequested;
         public event EventHandler ExitRequested;
@@ -24,7 +25,7 @@ namespace CodexQuotaWidget
         {
             Title = "Codex 用量看板";
             Width = 350;
-            Height = 332;
+            Height = 356;
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
             AllowsTransparency = true;
@@ -48,6 +49,8 @@ namespace CodexQuotaWidget
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(10) });
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(7) });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(14) });
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
@@ -68,8 +71,14 @@ namespace CodexQuotaWidget
             header.Children.Add(title);
             header.Children.Add(planText);
 
-            fiveHourCard = new QuotaCard("5 小时额度");
-            weeklyCard = new QuotaCard("一周额度");
+            weeklyCard = new QuotaCard("GPT 一周额度");
+            sparkWeeklyCard = new QuotaCard("Spark 一周额度");
+            sparkFiveHourText = new TextBlock
+            {
+                FontSize = 11.5,
+                Foreground = new SolidColorBrush(Color.FromRgb(139, 142, 151)),
+                Margin = new Thickness(2, 0, 0, 0)
+            };
 
             Grid footer = new Grid();
             footer.ColumnDefinitions.Add(new ColumnDefinition());
@@ -112,12 +121,14 @@ namespace CodexQuotaWidget
             footer.Children.Add(actions);
 
             Grid.SetRow(header, 0);
-            Grid.SetRow(fiveHourCard, 2);
-            Grid.SetRow(weeklyCard, 4);
-            Grid.SetRow(footer, 6);
+            Grid.SetRow(weeklyCard, 2);
+            Grid.SetRow(sparkWeeklyCard, 4);
+            Grid.SetRow(sparkFiveHourText, 6);
+            Grid.SetRow(footer, 8);
             root.Children.Add(header);
-            root.Children.Add(fiveHourCard);
             root.Children.Add(weeklyCard);
+            root.Children.Add(sparkWeeklyCard);
+            root.Children.Add(sparkFiveHourText);
             root.Children.Add(footer);
             shell.Child = root;
             Content = shell;
@@ -132,8 +143,17 @@ namespace CodexQuotaWidget
             statusText.Text = snapshot.StatusMessage;
             updatedText.Text = snapshot.UpdatedAt == default(DateTime) ? "" : "更新于 " + snapshot.UpdatedAt.ToString("HH:mm:ss");
             creditsText.Text = snapshot.IsOnline ? "额外 Credits：" + snapshot.CreditsBalance + "    可用重置：" + snapshot.AvailableResetCredits : "";
-            fiveHourCard.Update(snapshot.FiveHour, snapshot.IsOnline);
             weeklyCard.Update(snapshot.Weekly, snapshot.IsOnline);
+            sparkWeeklyCard.Update(snapshot.SparkWeekly, snapshot.IsOnline);
+            bool sparkFiveHourAvailable = snapshot.IsOnline && snapshot.SparkFiveHour.IsAvailable;
+            bool sparkFiveHourLow = sparkFiveHourAvailable && snapshot.SparkFiveHour.RemainingPercent < 10;
+            sparkFiveHourText.Text = sparkFiveHourAvailable
+                ? "Spark 5 小时剩余 " + snapshot.SparkFiveHour.RemainingPercent + "% · " + UsageText.ResetLong(snapshot.SparkFiveHour.ResetAfterSeconds)
+                    + (sparkFiveHourLow ? " · 可能缓慢或暂不可用" : "")
+                : (snapshot.IsOnline ? "Spark 5 小时额度暂未提供" : "等待数据");
+            sparkFiveHourText.Foreground = sparkFiveHourLow
+                ? new SolidColorBrush(Color.FromRgb(250, 204, 21))
+                : new SolidColorBrush(Color.FromRgb(139, 142, 151));
         }
 
         private sealed class QuotaCard : Border

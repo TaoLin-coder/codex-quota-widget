@@ -16,6 +16,10 @@ namespace CodexQuotaWidget
         internal const int WS_POPUP = unchecked((int)0x80000000);
         internal const int SW_SHOWNOACTIVATE = 4;
         internal const int SW_HIDE = 0;
+        internal const int WM_SETTINGCHANGE = 0x001A;
+        internal const int WM_DISPLAYCHANGE = 0x007E;
+        internal const int WM_DPICHANGED = 0x02E0;
+        internal const int WM_DPICHANGED_AFTERPARENT = 0x02E3;
         internal const uint SWP_NOACTIVATE = 0x0010;
         internal const uint SWP_SHOWWINDOW = 0x0040;
         internal const uint SWP_NOOWNERZORDER = 0x0200;
