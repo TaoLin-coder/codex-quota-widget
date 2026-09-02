@@ -17,6 +17,7 @@ namespace CodexQuotaWidget
         private readonly QuotaCard weeklyCard;
         private readonly QuotaCard sparkWeeklyCard;
         private readonly TextBlock sparkFiveHourText;
+        private bool closePending;
 
         public event EventHandler RefreshRequested;
         public event EventHandler ExitRequested;
@@ -133,8 +134,22 @@ namespace CodexQuotaWidget
             shell.Child = root;
             Content = shell;
 
-            Deactivated += delegate { Close(); };
-            PreviewKeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Escape) Close(); };
+            Deactivated += delegate { RequestClose(); };
+            PreviewKeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Escape) RequestClose(); };
+        }
+
+        private void RequestClose()
+        {
+            if (closePending) return;
+            closePending = true;
+
+            // Deactivated is raised inside WPF's own Close path. Defer our Close
+            // until that activation message has finished to avoid a re-entrant Close.
+            Dispatcher.BeginInvoke(new Action(delegate
+            {
+                if (IsLoaded)
+                    Close();
+            }));
         }
 
         public void UpdateSnapshot(UsageSnapshot snapshot)
