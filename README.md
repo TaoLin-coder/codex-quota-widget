@@ -23,7 +23,13 @@ Codex Quota Widget 是一个轻量、本地运行的 Windows 11 任务栏小组�
 
 程序、配置和界面都保留在你的电脑上。它只会读取本机已有的 Codex 登录信息，并直接向 ChatGPT 的用量接口查询额度；访问令牌仅在内存中使用，不会被写入日志或上传到第三方服务。
 
-当前版本：**v0.4（2026-09-02）**。
+> 本程序的代码、界面和文档完全由 OpenAI Codex 编写。
+
+当前版本：**v2026.09.03.1401**。
+
+### 版本命名
+
+从首个 GitHub Release 开始，所有版本标签统一使用上海时区的发布时间戳：`vYYYY.MM.DD.HHmm`。例如：`v2026.09.03.1401`。
 
 ### 功能
 
@@ -69,7 +75,13 @@ Codex Quota Widget is a lightweight, locally running Windows 11 taskbar widget f
 
 The application, its settings, and its interface stay on your computer. It reads the existing local Codex authentication data only to query the ChatGPT usage endpoint directly. The access token is kept in memory and is never written to logs or sent to a third-party service.
 
-Current version: **v0.4 (2026-09-02)**.
+> The program, user interface, and documentation were written entirely by OpenAI Codex.
+
+Current version: **v2026.09.03.1401**.
+
+### Release naming
+
+Starting with the first GitHub Release, every version tag uses its publication timestamp in the Asia/Shanghai time zone: `vYYYY.MM.DD.HHmm`. Example: `v2026.09.03.1401`.
 
 ### Features
 
