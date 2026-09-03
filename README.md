@@ -2,6 +2,19 @@
 
 [中文](#中文) | [English](#english)
 
+## 运行截图 / Screenshots
+
+任务栏小组件 / Taskbar widget
+
+<img src="docs/screenshots/taskbar-widget-sanitized.png" alt="Codex Quota Widget taskbar view with anonymized demo data" width="288">
+
+详细看板 / Detailed dashboard
+
+<img src="docs/screenshots/dashboard-sanitized.png" alt="Codex Quota Widget dashboard with anonymized demo data" width="520">
+
+> 截图中的额度、重置时间和套餐信息均已脱敏并替换为演示数据。<br>
+> Quotas, reset times, and plan details shown above have been anonymized and replaced with demo data.
+
 ## 中文
 
 ### 发布介绍
